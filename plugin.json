@@ -1,0 +1,10 @@
+{
+  "name": "bean-roaster",
+  "version": "1.0.0",
+  "description": "Product Discovery, Socratic Alignment, and PRD Synthesis Engine for Antigravity SDLC pipelines.",
+  "author": {
+    "name": "sapientcoffee"
+  },
+  "repository": "https://github.com/sapientcoffee/bean-roaster",
+  "license": "Apache-2.0"
+}
