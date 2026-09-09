@@ -46,7 +46,8 @@ In software engineering, raw feature requests and initial user prompts are the g
 | **1** | **`grill` (`skills/grill`)** | Conducts a relentless Socratic interview to challenge architectural assumptions, clarify edge cases, and auto-generate `docs/glossary.md` and Architecture Decision Records (`docs/adr/`). |
 | **1.5** | **`domain-modeling` (`skills/domain-modeling`)** | Defines ubiquitous terminology, entity boundaries, and bounded contexts to prevent domain leakage. |
 | **2** | **`write-prd` (`skills/write-prd`)** | Synthesizes an executive-grade Product Requirements Document (`02_PRD.md`) with explicit Non-Goals, measurable KPIs, and acceptance criteria. |
-| **2.5** | **`@red-team-reviewer` (`agents/red-team-reviewer.md`)** | Dispatches an adversarial subagent to audit the PRD for security flaws, race conditions, unhandled failure modes, and KPI ambiguities before human sign-off. |
+| **2.2** | **`@copy-editor` (`agents/copy-editor.md`)** | Autonomous specification purifier and AI-tell scrubber. Rewrites raw PRDs into dense, active, measurable requirements in an isolated context window. |
+| **2.5** | **`@threat-modeler` (`agents/threat-modeler.md`)** | Dispatches an isolated subagent to conduct an OWASP ASVS Level 2 audit on `02_PRD.md`, writing `docs/security/asvs_requirements.md` and emitting a binary PASS or BLOCKED gate decision. |
 | **—** | **`feature` (`skills/feature`)** | Orchestrator skill initializing versioned plan directories (`plans/<feature>/<timestamp>/`) and coordinating Stages 0 through 2. |
 
 ---
@@ -82,10 +83,15 @@ flowchart TD
         EmitPRD["Emit: 02_PRD.md"]
     end
 
-    subgraph RedTeam["Stage 2.5: Adversarial Audit (@red-team-reviewer)"]
-        AdversarialScan["Red-Team Reviewer Subagent"]
-        ChecklistReview["Audit for KPI Ambiguity,<br/>Race Conditions & Security Holes"]
-        RedTeamVerdict{"Red-Team Audit Verdict"}
+    subgraph Purification["Stage 2.2: Specification Purification (@copy-editor)"]
+        CopyEdit["@copy-editor Subagent<br/>(Strip AI tells, enforce active voice & metrics)"]
+        PurifiedPRD["Purified: 02_PRD.md"]
+    end
+
+    subgraph ThreatModeling["Stage 2.5: Threat Modeling Gate (@threat-modeler)"]
+        ASVSAudit["@threat-modeler Subagent<br/>(OWASP ASVS Level 2 Audit)"]
+        ASVSDoc["Emit: docs/security/asvs_requirements.md"]
+        ASVSVerdict{"ASVS Gate Verdict<br/>PASS or BLOCKED"}
         RefineLoop["Refine PRD Requirements"]
     end
 
@@ -107,14 +113,15 @@ flowchart TD
     Clarify --> Glossary & ADR & Domain
     Glossary & ADR --> SynthesizePRD
     SynthesizePRD --> NonGoals --> ExecutableKPIs --> EmitPRD
-    EmitPRD --> AdversarialScan
-    AdversarialScan --> ChecklistReview --> RedTeamVerdict
-    RedTeamVerdict -->|Deficiencies Found| RefineLoop --> SynthesizePRD
-    RedTeamVerdict -->|Passed Clean| HumanSignoff
+    EmitPRD --> CopyEdit --> PurifiedPRD
+    PurifiedPRD --> ASVSAudit
+    ASVSAudit --> ASVSDoc --> ASVSVerdict
+    ASVSVerdict -->|BLOCKED: Gaps Found| RefineLoop --> SynthesizePRD
+    ASVSVerdict -->|PASS| HumanSignoff
     HumanSignoff -->|Changes Requested| Rejected --> InterviewLoop
     HumanSignoff -->|Approved| Approved
     Approved --> HandoffBrewer
-    EmitIdeation & EmitPRD -.-> SyncDashboard
+    EmitIdeation & PurifiedPRD -.-> SyncDashboard
 ```
 
 ---

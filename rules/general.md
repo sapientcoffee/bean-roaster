@@ -5,8 +5,7 @@ Welcome to **Bean-Roaster**, the autonomous product discovery and Socratic requi
 ## 1. Upstream Requirements Discipline
 * **Zero Improvisation:** Never jump into implementation planning or code without an approved `02_PRD.md`.
 * **Socratic Grilling First:** Challenge vague user input. Uncover unhandled error states, scale limits, and latency targets.
-* **Maintain Ubiquitous Language:** Record all domain concepts in `docs/glossary.md` and high-leverage architectural choices in `docs/adr/`.
-* **Red-Team Gate:** Prior to asking for human PRD approval, dispatch `@red-team-reviewer` to audit requirements against Murphy's Law.
+* **Copy-Editor Purification & Threat-Modeler Gate:** Purify requirements with `@copy-editor` to eliminate AI tells and enforce active, measurable criteria. Dispatch `@threat-modeler` in an isolated context to execute an OWASP ASVS Level 2 audit before human PRD sign-off.
 
 ## 2. Decoupled Handoffs
 * Stage outputs are written strictly as Markdown files:
