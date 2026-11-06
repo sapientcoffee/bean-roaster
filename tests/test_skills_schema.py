@@ -14,13 +14,11 @@
 # limitations under the License.
 
 """
-Skill Schema and Frontmatter Test Suite.
-Validates all SKILL.md files in skills/ for required YAML frontmatter fields
-and script file path references.
+Skill and Agent Schema Test Suite for bean-roaster.
+Validates SKILL.md files, copy-editor.md agent schema, rules files, and absence of deprecated files.
 """
 
 import os
-import sys
 import unittest
 import yaml
 
@@ -30,73 +28,82 @@ def find_repo_root():
     return os.path.abspath(os.path.join(script_dir, ".."))
 
 
+def parse_frontmatter(path):
+    with open(path, "r", encoding="utf-8") as f:
+        content = f.read()
+    if not content.startswith("---"):
+        raise ValueError(f"{path} does not start with YAML frontmatter delimiter '---'")
+    parts = content.split("---", 2)
+    if len(parts) < 3:
+        raise ValueError(f"{path} frontmatter delimiter '---' is not closed")
+    return yaml.safe_load(parts[1]), parts[2]
+
+
 class TestSkillsSchema(unittest.TestCase):
 
     def setUp(self):
         self.repo_root = find_repo_root()
         self.skills_dir = os.path.join(self.repo_root, "skills")
+        self.agents_dir = os.path.join(self.repo_root, "agents")
+        self.rules_dir = os.path.join(self.repo_root, "rules")
 
-    def test_skills_directory_exists(self):
-        self.assertTrue(os.path.exists(self.skills_dir), f"Skills directory not found at {self.skills_dir}")
+    def test_expected_skills_exist(self):
+        expected = {"cupping-form", "domain-modeling", "grill", "ideator", "write-prd"}
+        actual = {
+            d for d in os.listdir(self.skills_dir)
+            if os.path.isdir(os.path.join(self.skills_dir, d)) and not d.startswith(".")
+        }
+        self.assertEqual(actual, expected)
 
     def test_all_skills_have_skill_md_and_valid_frontmatter(self):
         skill_folders = [
             d for d in os.listdir(self.skills_dir)
             if os.path.isdir(os.path.join(self.skills_dir, d)) and not d.startswith(".")
         ]
-        self.assertGreater(len(skill_folders), 0, "No skill directories found under skills/")
-
         for skill_name in sorted(skill_folders):
-            skill_folder_path = os.path.join(self.skills_dir, skill_name)
-            skill_md_path = os.path.join(skill_folder_path, "SKILL.md")
-
+            skill_md_path = os.path.join(self.skills_dir, skill_name, "SKILL.md")
             with self.subTest(skill=skill_name):
-                self.assertTrue(
-                    os.path.exists(skill_md_path),
-                    f"Missing SKILL.md in skill directory: {skill_folder_path}"
-                )
+                self.assertTrue(os.path.exists(skill_md_path))
+                data, body = parse_frontmatter(skill_md_path)
+                self.assertIsInstance(data, dict)
+                self.assertEqual(data.get("name"), skill_name)
+                self.assertTrue(data.get("description"))
+                for forbidden in ("visual-dashboard.html", "manage_dashboard.py", "bean-to-cup", "visual-glossary.html"):
+                    self.assertNotIn(forbidden, body, f"Forbidden reference {forbidden} in {skill_md_path}")
 
-                with open(skill_md_path, "r", encoding="utf-8") as f:
-                    content = f.read()
+    def test_copy_editor_agent_schema(self):
+        agent_path = os.path.join(self.agents_dir, "copy-editor.md")
+        self.assertTrue(os.path.exists(agent_path))
+        data, _ = parse_frontmatter(agent_path)
+        self.assertEqual(data.get("name"), "copy-editor")
+        self.assertEqual(data.get("kind"), "local")
+        self.assertIs(data.get("subagent"), True)
+        self.assertIs(data.get("mainAgent"), False)
+        self.assertEqual(data.get("model"), "inherit")
+        self.assertEqual(data.get("tools"), ["read_file", "write_file", "edit_file"])
 
-                # Frontmatter parsing
-                self.assertTrue(
-                    content.startswith("---"),
-                    f"{skill_md_path} does not start with YAML frontmatter delimiter '---'"
-                )
+    def test_removed_files_absent(self):
+        removed_paths = [
+            "agents/threat-modeler.md",
+            "skills/feature",
+            "skills/grilling",
+            "skills/domain-modeling/resources/visual-glossary.html",
+            "scripts/sync_dashboard_if_available.py",
+            "rules/gh.md",
+            "gemini-extension.json",
+        ]
+        for rel in removed_paths:
+            full_path = os.path.join(self.repo_root, rel)
+            self.assertFalse(os.path.exists(full_path), f"Deprecated path should be removed: {rel}")
 
-                parts = content.split("---", 2)
-                self.assertGreaterEqual(
-                    len(parts), 3,
-                    f"{skill_md_path} frontmatter delimiter '---' is invalid or not closed"
-                )
-
-                frontmatter_raw = parts[1]
-                try:
-                    data = yaml.safe_load(frontmatter_raw)
-                except Exception as e:
-                    self.fail(f"YAML parsing error in {skill_md_path}: {e}")
-
-                self.assertIsInstance(
-                    data, dict,
-                    f"Frontmatter in {skill_md_path} must be a dictionary"
-                )
-                self.assertIn(
-                    "name", data,
-                    f"Frontmatter in {skill_md_path} missing required 'name' field"
-                )
-                self.assertIn(
-                    "description", data,
-                    f"Frontmatter in {skill_md_path} missing required 'description' field"
-                )
-                self.assertTrue(
-                    data["name"],
-                    f"'name' field in {skill_md_path} cannot be empty"
-                )
-                self.assertTrue(
-                    data["description"],
-                    f"'description' field in {skill_md_path} cannot be empty"
-                )
+    def test_rules_plain_markdown(self):
+        for rule_file in ("AGENTS.md", "general.md"):
+            rule_path = os.path.join(self.rules_dir, rule_file)
+            self.assertTrue(os.path.exists(rule_path), f"Missing rule file: {rule_file}")
+            with open(rule_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            self.assertFalse(content.startswith("---"), f"{rule_file} must not have YAML frontmatter")
+            self.assertNotIn("visual-dashboard.html", content)
 
 
 if __name__ == "__main__":
