@@ -5,7 +5,7 @@ description: Build and sharpen a project's domain model. Use when the user wants
 
 # Domain Modeling
 
-Actively build and sharpen the project's domain model as you design. This is the *active* discipline — challenging terms, inventing edge-case scenarios, and writing the glossary and decisions down the moment they crystallise. (Merely *reading* `docs/glossary.md` for vocabulary is not this skill — that's a one-line habit any skill can do. This skill is for when you're changing the model, not just consuming it.)
+Actively build and sharpen the project's domain model as you design. This is the *active* discipline — challenging terms, inventing edge-case scenarios, and writing the glossary, bounded context (`docs/CONTEXT.md`), extraction artifacts (`.scratch/<id>/02_EXTRACTION.md`), and decisions (`docs/adr/`) down the moment they crystallise.
 
 ## File structure
 
@@ -14,8 +14,8 @@ Most repos have a single context:
 ```
 /
 ├── docs/
+│   ├── CONTEXT.md
 │   ├── glossary.md
-│   ├── visual-glossary.html
 │   └── adr/
 │       ├── 0001-event-sourced-orders.md
 │       └── 0002-postgres-for-write-model.md
@@ -27,6 +27,7 @@ If a `docs/glossary-map.md` exists, the repo has multiple contexts. The map poin
 ```
 /
 ├── docs/
+│   ├── CONTEXT.md
 │   ├── glossary-map.md
 │   ├── adr/                          ← system-wide decisions
 │   └── ordering/
@@ -34,13 +35,13 @@ If a `docs/glossary-map.md` exists, the repo has multiple contexts. The map poin
 │       └── adr/                      ← context-specific decisions
 ```
 
-Create files lazily — only when you have something to write. If no `docs/glossary.md` exists, create one when the first term is resolved. If no `docs/adr/` exists, create it when the first ADR is needed.
+Create files lazily — only when you have something to write. If no `docs/glossary.md` or `docs/CONTEXT.md` exists, create them when the first term or domain boundary is resolved. If no `docs/adr/` exists, create it when the first ADR is needed.
 
 ## During the session
 
 ### Challenge against the glossary
 
-When the user uses a term that conflicts with the existing language in `docs/glossary.md`, call it out immediately. "Your glossary defines 'cancellation' as X, but you seem to mean Y — which is it?"
+When the user uses a term that conflicts with the existing language in `docs/glossary.md` or `docs/CONTEXT.md`, call it out immediately. "Your glossary defines 'cancellation' as X, but you seem to mean Y — which is it?"
 
 ### Sharpen fuzzy language
 
@@ -54,14 +55,9 @@ When domain relationships are being discussed, stress-test them with specific sc
 
 When the user states how something works, check whether the code agrees. If you find a contradiction, surface it: "Your code cancels entire Orders, but you just said partial cancellation is possible — which is right?"
 
-### Update docs/glossary.md inline
+### Update docs/glossary.md and docs/CONTEXT.md inline
 
-When a term is resolved, update `docs/glossary.md` right there. Don't batch these up — capture them as they happen. Use the format in [GLOSSARY-FORMAT.md](./GLOSSARY-FORMAT.md).
-
-After updating `docs/glossary.md` or adding/modifying any ADR in `docs/adr/`, you MUST also update the global visual glossary (`docs/visual-glossary.html`) to sync with the changes:
-1. Copy `skills/domain-modeling/resources/visual-glossary.html` (located relative to repository root) to `docs/visual-glossary.html`.
-2. Format all current terms and ADRs into their respective placeholder markers (`<!-- VG:GLOSSARY -->` and `<!-- VG:ADR -->`).
-3. Dual-write the updated HTML directly to system artifacts directory as `01_visual-glossary.html` (making it visible in the Artifacts tab).
+When a term or boundary is resolved, update `docs/glossary.md` and `docs/CONTEXT.md` (and `.scratch/<id>/02_EXTRACTION.md` when running a staged workflow) right there. Don't batch these up — capture them as they happen. Use the format in [GLOSSARY-FORMAT.md](./GLOSSARY-FORMAT.md).
 
 `docs/glossary.md` should be totally devoid of implementation details. Do not treat `docs/glossary.md` as a spec, a scratch pad, or a repository for implementation decisions. It is a glossary and nothing else.
 
@@ -73,4 +69,4 @@ Only offer to create an ADR when all three are true:
 2. **Surprising without context** — a future reader will wonder "why did they do it this way?"
 3. **The result of a real trade-off** — there were genuine alternatives and you picked one for specific reasons
 
-If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](./ADR-FORMAT.md).
+If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](./ADR-FORMAT.md), and mark all pre-merge ADRs in `docs/adr/` with `Status: Proposed — Refs #<id>`.

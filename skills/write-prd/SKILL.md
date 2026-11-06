@@ -1,46 +1,38 @@
 ---
 name: write-prd
-description: Stage 2 - Acts as a Product Manager to turn raw user ideas into a rigorous Product Requirements Document (PRD), saving the output and managing the user approval process.
+description: Stage 3 - Acts as a Product Manager to turn aligned discovery and extraction outputs into a rigorous Product Requirements Document (.scratch/<id>/03_PRD.md), saving the output and managing the user approval process.
 ---
 
-# Skill: Write PRD (Product Requirements Document) (Stage 2)
+# Skill: Write PRD (Product Requirements Document) (Stage 3)
 
 ## Objective
-Your goal as the Product Manager is to turn raw, unstructured user ideas into a rigorous Product Requirements Document (PRD) and **pause for user approval** before any technical design or research begins.
+Your goal as the Product Manager is to turn aligned user ideas and extracted context into a rigorous Product Requirements Document (`.scratch/<id>/03_PRD.md`) and **pause for user approval** before any technical specification or implementation begins.
 
 ## Rules of Engagement
 - **Artifact Handover**: Save your final output back to the file system.
-- **Save Location & Directory Reuse**: Output the markdown document to `plans/{feature-slug}/{timestamp}/02_PRD.md` and output the visual HTML counterpart to `plans/{feature-slug}/{timestamp}/visual-dashboard.html`. **CRITICAL**: Check if an existing plan directory already exists under `plans/{feature-slug}/` (e.g., created by `ideator` or a prior skill). If one exists, **REUSE that exact directory**. Do NOT create a new timestamp folder when `ideator` was run first. Fallback to creating a new timestamp directory ONLY if no existing directory for `{feature-slug}` exists under `plans/`.
-- **UI Visibility / Artifact Mirroring**: In addition to saving the documents in the workspace, mirror `visual-dashboard.html` to system artifacts via `python3 ~/.gemini/config/plugins/bean-to-cup/skills/visual-dashboard/scripts/manage_dashboard.py mirror --plan-dir "plans/{feature-slug}/{timestamp}"`, and copy `02_PRD.md` to system artifacts as `02_prd.md`.
-- **Pure Product Boundary**: Do NOT suggest technical frameworks, software libraries, databases, state management patterns, or physical file/folder structures. Keep the requirements focused entirely on the business problem, personas, customer journeys, scope, and functional acceptance criteria.
+- **Save Location & Directory Reuse**: Output the markdown document to `.scratch/<id>/03_PRD.md`. **CRITICAL**: Check if `.scratch/<id>/` already exists (containing `00_IDEATION.md`, `01_QUESTIONS.md`, or `02_EXTRACTION.md`) and inspect `docs/CONTEXT.md` and `docs/adr/`. Reuse `.scratch/<id>/`.
+- **Pure Product Boundary**: Do NOT suggest technical frameworks, software libraries, databases, state management patterns, or physical file/folder structures unless already locked in `docs/adr/` (marked `Status: Proposed — Refs #<id>`). Keep the requirements focused on the business problem, personas, customer journeys, scope, and functional/non-functional acceptance criteria.
 - **Approval Gate**: You MUST pause and actively ask the user if they approve the requirements before taking any further action.
-- **Iterative Rework**: If the user leaves comments or provides feedback in chat, apply the requested changes to both `02_PRD.md` and `visual-dashboard.html`, and ask for approval again!
+- **Iterative Rework**: If the user leaves comments or provides feedback in chat, apply the requested changes to `.scratch/<id>/03_PRD.md` and ask for approval again!
 
 ## Instructions
-1. **Deconstruct User Intent**: Deeply analyze the user's initial idea or feature request.
-2. **Draft the Markdown PRD**: Your PRD MUST include:
+1. **Deconstruct User Intent & Context**: Deeply analyze `.scratch/<id>/00_IDEATION.md`, `.scratch/<id>/01_QUESTIONS.md`, `.scratch/<id>/02_EXTRACTION.md`, `docs/CONTEXT.md`, and `docs/adr/`.
+2. **Draft the Markdown PRD (`.scratch/<id>/03_PRD.md`)**: Your PRD MUST include:
    - **Problem Statement**: Definition of the pain point.
    - **Target Personas**: Who will use this feature.
    - **User Stories & Epics**: Structured as "As a [role], I want to [action] so that [outcome]."
    - **Scope Boundaries**: In-Scope and Out-of-Scope lists.
    - **Acceptance Criteria**: Gherkin (Given-When-Then) scenarios.
    - **Non-Functional Requirements (NFRs) / Google Cloud Well-Architected Framework Pillars**: Reliability (self-healing, backups), Security (least-privilege IAM, VPC Service Controls, Cloud Secret Manager), Cost Optimization (right-sizing, cleanups), Performance Efficiency (indexes, cache, autoscaling thresholds).
-   - **Deployment & DevOps Strategy**: Target GCP runtimes, Terraform Infrastructure-as-Code resources, CI/CD setup, and progressive release strategies (canary, rolling, blue-green).
-   - **SRE & Observability Integration**: Google Cloud Logging (JSON formats), Cloud Monitoring metrics, Cloud Trace integration, SLIs/SLOs targets, error budget rules, and operational runbooks.
+   - **Deployment & DevOps Strategy**: Target runtimes, Infrastructure-as-Code resources, CI/CD setup, and progressive release strategies (canary, rolling, blue-green).
+   - **SRE & Observability Integration**: Structured logging, monitoring metrics, tracing integration, SLIs/SLOs targets, error budget rules, and operational runbooks.
 3. **Specification Purification Gate (`@copy-editor`)**:
-   - Post-drafting, dispatch the subagent `@copy-editor` in an isolated context to ingest `02_PRD.md`, eliminate AI boilerplate and corporate buzzwords, convert passive voice to active voice, and replace vague criteria with dense, measurable thresholds.
+   - Post-drafting, dispatch the subagent `@copy-editor` in an isolated context to ingest `.scratch/<id>/03_PRD.md`, eliminate AI boilerplate and corporate buzzwords, convert passive voice to active voice, and replace vague criteria with dense, measurable thresholds.
 4. **OWASP ASVS Level 2 Threat Modeling Gate (`@threat-modeler`)**:
-   - Dispatch the subagent `@threat-modeler` in an isolated context to audit `02_PRD.md` against baseline ASVS Level 2 domains: V2 (Authentication), V3 (Session Management), V4 (Access Control), and V5 (Validation & Sanitization).
-   - Require `@threat-modeler` to write `docs/security/asvs_requirements.md` and return a binary `PASS` or `BLOCKED: <reasons>` decision. The gate fails if authorization checks or credential handling boundaries are missing.
-   - Refine `02_PRD.md` until `@threat-modeler` returns `PASS`.
+   - Dispatch `@threat-modeler` (from `bean-core`) in an isolated context to audit `.scratch/<id>/03_PRD.md` against baseline ASVS Level 2 domains: V2 (Authentication), V3 (Session Management), V4 (Access Control), and V5 (Validation & Sanitization).
+   - Require `@threat-modeler` to write `docs/security/asvs_requirements.md` and return a binary `PASS` or `BLOCKED: <reasons>` decision.
+   - Refine `.scratch/<id>/03_PRD.md` until `@threat-modeler` returns `PASS`.
 5. **Generate Executable Evals (`evals/test_kpis.py`)**:
-   - Parse all measurable KPIs and non-functional requirements in `02_PRD.md` and generate programmatic benchmark test scripts in `evals/test_kpis.py` (e.g. testing latency thresholds, error rate bounds, and payload limits).
-6. **Compile the Visual PRD inside the Unified Dashboard (`visual-dashboard.html`)**:
-   - Ensure `visual-dashboard.html` exists by executing `python3 ~/.gemini/config/plugins/bean-to-cup/skills/visual-dashboard/scripts/manage_dashboard.py ensure --plan-dir "plans/{feature-slug}/{timestamp}" --moniker "{feature-slug}"` (or invoke the `visual-dashboard` skill).
-   - Automatically compile all PRD sections into full-fidelity HTML cards and render raw markdown by running:
-     `python3 ~/.gemini/config/plugins/bean-to-cup/skills/visual-dashboard/scripts/manage_dashboard.py sync-prd --plan-dir "plans/{feature-slug}/{timestamp}" --moniker "{feature-slug}"`
-   - **Zero Intermediate Snippet Files**: Do NOT write any temporary HTML files. `sync-prd` parses `02_PRD.md` directly and updates `visual-dashboard.html` in-place.
-7. Save all documents (`02_PRD.md`, `evals/test_kpis.py`, `visual-dashboard.html`).
-8. **Halt Execution**: Explicitly ask the user: "Do you approve of these product requirements and PRD? Please review `02_PRD.md`, the executable KPIs in `evals/test_kpis.py`, and the visual dashboard `visual-dashboard.html`. Once approved, we will proceed to Stage 3: Context Extraction."
-
-
+   - Parse all measurable KPIs and non-functional requirements in `.scratch/<id>/03_PRD.md` and generate programmatic benchmark test scripts in `evals/test_kpis.py` (e.g., testing latency thresholds, error rate bounds, and payload limits).
+6. Save all documents (`.scratch/<id>/03_PRD.md`, `evals/test_kpis.py`).
+7. **Halt Execution**: Explicitly ask the user: "Do you approve of these product requirements and PRD? Please review `.scratch/<id>/03_PRD.md` and the executable KPIs in `evals/test_kpis.py`."
