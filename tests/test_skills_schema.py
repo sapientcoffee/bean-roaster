@@ -71,16 +71,78 @@ class TestSkillsSchema(unittest.TestCase):
                 for forbidden in ("visual-dashboard.html", "manage_dashboard.py", "bean-to-cup", "visual-glossary.html"):
                     self.assertNotIn(forbidden, body, f"Forbidden reference {forbidden} in {skill_md_path}")
 
-    def test_copy_editor_agent_schema(self):
-        agent_path = os.path.join(self.agents_dir, "copy-editor.md")
-        self.assertTrue(os.path.exists(agent_path))
-        data, _ = parse_frontmatter(agent_path)
-        self.assertEqual(data.get("name"), "copy-editor")
-        self.assertEqual(data.get("kind"), "local")
-        self.assertIs(data.get("subagent"), True)
-        self.assertIs(data.get("mainAgent"), False)
-        self.assertEqual(data.get("model"), "inherit")
-        self.assertEqual(data.get("tools"), ["read_file", "write_file", "edit_file"])
+    def test_expected_agents_and_schema(self):
+        expected_agents = {
+            "copy-editor": ["read_file", "write_file", "edit_file"],
+            "product-ideator": ["read_file", "write_file", "edit_file", "run_command"],
+            "question-formulator": ["read_file", "write_file", "edit_file"],
+            "prd-author": ["read_file", "write_file", "edit_file", "run_command"],
+        }
+        actual_files = {
+            f for f in os.listdir(self.agents_dir)
+            if f.endswith(".md") and not f.startswith(".")
+        }
+        self.assertEqual(actual_files, {f"{name}.md" for name in expected_agents})
+
+        for agent_name, expected_tools in expected_agents.items():
+            agent_path = os.path.join(self.agents_dir, f"{agent_name}.md")
+            with self.subTest(agent=agent_name):
+                self.assertTrue(os.path.exists(agent_path))
+                data, body = parse_frontmatter(agent_path)
+                self.assertEqual(data.get("name"), agent_name)
+                self.assertTrue(data.get("description"))
+                self.assertEqual(data.get("kind"), "local")
+                self.assertIs(data.get("subagent"), True)
+                self.assertIs(data.get("mainAgent"), False)
+                self.assertEqual(data.get("model"), "inherit")
+                self.assertEqual(data.get("tools"), expected_tools)
+                self.assertTrue(len(body.strip()) > 0)
+
+    def test_subagent_specific_contracts(self):
+        ideator_path = os.path.join(self.agents_dir, "product-ideator.md")
+        _, ideator_body = parse_frontmatter(ideator_path)
+        self.assertIn("00_IDEATION.md", ideator_body)
+        self.assertIn("scripts/okf.py", ideator_body)
+        self.assertIn("300", ideator_body)
+
+        qf_path = os.path.join(self.agents_dir, "question-formulator.md")
+        _, qf_body = parse_frontmatter(qf_path)
+        self.assertIn("Zero Feature Solution Leakage", qf_body)
+        self.assertIn("01_QUESTIONS.md", qf_body)
+        self.assertIn("00_IDEATION.md", qf_body)
+        self.assertIn("docs/CONTEXT.md", qf_body)
+
+        prd_path = os.path.join(self.agents_dir, "prd-author.md")
+        _, prd_body = parse_frontmatter(prd_path)
+        self.assertIn("03_PRD.md", prd_body)
+        self.assertIn("evals/test_kpis.py", prd_body)
+        self.assertIn("300", prd_body)
+
+    def test_skills_delegate_to_subagents(self):
+        delegations = {
+            "ideator": ["@product-ideator", "invoke_subagent", "00_IDEATION.md"],
+            "cupping-form": ["@question-formulator", "invoke_subagent", "ask_question", "01_QUESTIONS.md"],
+            "write-prd": ["@prd-author", "@copy-editor", "@threat-modeler", "invoke_subagent", "03_PRD.md", "evals/test_kpis.py"],
+        }
+        for skill_name, expected_refs in delegations.items():
+            skill_md_path = os.path.join(self.skills_dir, skill_name, "SKILL.md")
+            with self.subTest(skill=skill_name):
+                _, body = parse_frontmatter(skill_md_path)
+                for ref in expected_refs:
+                    self.assertIn(ref, body, f"Expected {ref} in {skill_md_path}")
+
+    def test_rules_and_readme_register_subagents(self):
+        agents_rule_path = os.path.join(self.rules_dir, "AGENTS.md")
+        with open(agents_rule_path, "r", encoding="utf-8") as f:
+            agents_rule_content = f.read()
+        for agent_name in ("copy-editor", "product-ideator", "question-formulator", "prd-author", "threat-modeler"):
+            self.assertIn(agent_name, agents_rule_content, f"Expected {agent_name} in rules/AGENTS.md")
+
+        readme_path = os.path.join(self.repo_root, "README.md")
+        with open(readme_path, "r", encoding="utf-8") as f:
+            readme_content = f.read()
+        for agent_name in ("copy-editor", "product-ideator", "question-formulator", "prd-author", "threat-modeler"):
+            self.assertIn(agent_name, readme_content, f"Expected {agent_name} in README.md")
 
     def test_removed_files_absent(self):
         removed_paths = [
